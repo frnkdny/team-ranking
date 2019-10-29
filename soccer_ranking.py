@@ -87,34 +87,64 @@ def check_tense(num):
         return "pts"
 
 
-def print_team_standings(standings):
-    """Prints to stdout the rank of teams, if the total points are equal teams get the same rank.
-    >>> print_team_standings({'Lions': 5, 'Snakes': 1, 'Tarantulas': 6, 'FC Awesome': 1, 'Grouches': 0})
+def rank_team_standings(standings):
+    """Expects a dict of team standings.
+    Returns a ranked list that is ordered from most to least points.
+    If two or more teams have the same number of points, they will all have the same rank and be in alphabetical order.
+    >>> rank_team_standings({'Lions': 5, 'Snakes': 1, 'Tarantulas': 6, 'FC Awesome': 1, 'Grouches': 0})
+    [[1, 'Tarantulas', 6], [2, 'Lions', 5], [3, 'FC Awesome', 1], [3, 'Snakes', 1], [5, 'Grouches', 0]]
+    >>> rank_team_standings({'Lions': 6, 'Snakes': 1, 'Tarantulas': 6, 'FC Awesome': 1, 'Grouches': 0, 'Zebras': 1})
+    [[1, 'Lions', 6], [1, 'Tarantulas', 6], [3, 'FC Awesome', 1], [3, 'Snakes', 1], [3, 'Zebras', 1], \
+[6, 'Grouches', 0]]
+    >>> rank_team_standings({'Lions': 6, 'Snakes': 6, 'Tarantulas': 6, 'FC Awesome': 6, 'Grouches': 6, 'Zebras': 1, \
+'Ants': 6, 'Bees': 6, 'Cats': 6, 'Dogs': 6, 'Birds': 1, 'Rats': 2})
+    [[1, 'Ants', 6], [1, 'Bees', 6], [1, 'Cats', 6], [1, 'Dogs', 6], [1, 'FC Awesome', 6], [1, 'Grouches', 6], \
+[1, 'Lions', 6], [1, 'Snakes', 6], [1, 'Tarantulas', 6], [10, 'Rats', 2], [11, 'Birds', 1], [11, 'Zebras', 1]]
+    >>> rank_team_standings({'Bees': 6, 'Ants': 6, 'FC Awesome': 6})
+    [[1, 'Ants', 6], [1, 'Bees', 6], [1, 'FC Awesome', 6]]
+    >>> rank_team_standings({'Grouches': 0})
+    [[1, 'Grouches', 0]]
+    """
+    ranked = sorted(standings.items(), key=last, reverse=True)
+    rank = 1
+    prev_team = ranked[0][0]
+    ranked_teams = [[rank, prev_team, standings[prev_team]]]
+    dup_standing = 0
+
+    for curr_team in ranked[1:]:
+        if standings[curr_team[0]] == standings[prev_team]:
+            ranked_teams.append([rank, curr_team[0], standings[curr_team[0]]])
+            dup_standing += 1
+        else:
+            rank = rank + dup_standing + 1
+            ranked_teams.append([rank, curr_team[0], standings[curr_team[0]]])
+            dup_standing = 0
+            prev_team = curr_team[0]
+
+    ranked_teams_sorted = sorted(ranked_teams)
+    return ranked_teams_sorted
+
+
+def print_team_standings(teams_standing):
+    """Expects a list of sorted ranked teams [[rank, team, score]] and prints the teams to stdout.
+    >>> print_team_standings([[1, 'Tarantulas', 6], [2, 'Lions', 5], [3, 'FC Awesome', 1], [3, 'Snakes', 1], \
+[5, 'Grouches', 0]])
     1. Tarantulas, 6 pts
     2. Lions, 5 pts
     3. FC Awesome, 1 pt
     3. Snakes, 1 pt
     5. Grouches, 0 pts
+    >>> print_team_standings([[1, 'Lions', 6], [1, 'Tarantulas', 6], [3, 'FC Awesome', 1], [3, 'Snakes', 1], \
+[3, 'Zebras', 1], [6, 'Grouches', 0]])
+    1. Lions, 6 pts
+    1. Tarantulas, 6 pts
+    3. FC Awesome, 1 pt
+    3. Snakes, 1 pt
+    3. Zebras, 1 pt
+    6. Grouches, 0 pts
     """
-    ranked = sorted(standings.items(), key=last)
-    team_rank = 1
-    team_count = len(ranked)
-    while team_count > 0:
-        if team_count == 1:
-            tense = check_tense(ranked[team_count - 1][1])
-            print("%s. %s, %s %s" % (team_rank, ranked[team_count - 1][0], ranked[team_count - 1][1], tense))
-            team_count -= 1
-        elif ranked[team_count - 1][1] != ranked[team_count - 2][1]:
-            tense = check_tense(ranked[team_count - 1][1])
-            print("%s. %s, %s %s" % (team_rank, ranked[team_count - 1][0], ranked[team_count - 1][1], tense))
-            team_rank += 1
-            team_count -= 1
-        elif ranked[team_count - 1][1] == ranked[team_count - 2][1]:
-            tense = check_tense(ranked[team_count - 1][1])
-            print("%s. %s, %s %s" % (team_rank, ranked[team_count - 1][0], ranked[team_count - 1][1], tense))
-            print("%s. %s, %s %s" % (team_rank, ranked[team_count - 2][0], ranked[team_count - 1][1], tense))
-            team_rank += 2
-            team_count -= 2
+    for team in teams_standing:
+        print("%s. %s, %s %s" % (team[0], team[1], team[2], check_tense(team[2])))
 
 
 def main():
@@ -126,7 +156,8 @@ def main():
     total_games = parse_file(file_handle)
     stats = create_teams(total_games)
     stats = calculate_team_standings(total_games, stats)
-    print_team_standings(stats)
+    teams_ranked = rank_team_standings(stats)
+    print_team_standings(teams_ranked)
 
 
 if __name__ == '__main__':
